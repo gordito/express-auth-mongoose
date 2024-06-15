@@ -124,6 +124,7 @@ This package uses some depenencies for validating input and building the Cookie 
 Add issues or PR:s to the porject if you want to request features.
 
 Current roadmap:
+- Automatic testing of each release.
 - User metadata and tracking, like saving IP of session and setting timezone and localization.
 - Multi-factor authentication support.
 - Restore password, inputing a email function like Sendgrid etc.
