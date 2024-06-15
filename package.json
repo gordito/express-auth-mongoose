@@ -1,0 +1,36 @@
+{
+  "name": "express-auth-mongoose",
+  "version": "0.1.0",
+  "description": "Express Auth functions using Mongoose as a DB",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gordito/express-auth-mongoose.git"
+  },
+  "keywords": [
+    "express",
+    "auth",
+    "login",
+    "user",
+    "mongoose",
+    "mongodb"
+  ],
+  "author": "Robin Kochauf",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gordito/express-auth-mongoose/issues"
+  },
+  "homepage": "https://github.com/gordito/express-auth-mongoose#readme",
+  "dependencies": {
+    "celebrate": "^15.0.3",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "joi": "^17.13.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.4.1"
+  }
+}
