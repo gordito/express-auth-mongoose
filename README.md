@@ -52,6 +52,41 @@ app.listen(port, () => {
 
 Thats about it, now you hopefully never need to write another user login/logout coce again.
 
+## Endpoints / Paths
+
+###  `POST create-user`
+
+Send body as a json with the following params:
+
+```
+email: Joi.string().email().required(),
+name: Joi.string().required(),
+password: Joi.string().min(8).required(),
+```
+
+### `POST /login`
+
+Send body as a json with the following params:
+
+```
+email: Joi.string().email().required(),
+password: Joi.string().required(),
+```
+
+### `GET /status`
+
+Get login status, returns 200 and the User json object if user is loged in and have a valid session, else returns 401.
+
+
+### `GET /logout`
+
+Use query commands to target specific session or delete all user sessions.
+
+Query params:
+```
+sessionId: Joi.string(),
+all: Joi.boolean(),
+```
 
 ## Module Exports
 
