@@ -13,11 +13,24 @@ const validateCookie = require('./middleware/validate.cookie');
 const { HttpError } = require('./middleware/custom.error');
 
 // Mongoose Models
-const UserModel = require('./model/user');
-const UserSessionModel = require('./model/usersession');
+let User = null;
+let UserSession =  null;
 
+const Connect = async (connectionString) => {
+  try {
+    await mongoose.connect(config.mongodb);
+    if (config.debug) console.log('Express Auth - MongoDB Connected');
+    User = require('./model/user');;
+    UserSession = require('./model/usersession');
+  } catch (e) {
+    if (config.debug) console.log('Express Auth - MongoDB Connection Error', e);
+  }
+};
+Connect();
 
 const router = express.Router({ mergeParams: true });
+
+if (config.debug) console.log('Express Auth - Debug Mode');
 
 router.post(
   '/login',
@@ -30,6 +43,7 @@ router.post(
   }),
   async (req, res, next) => {
     try {
+      if (mongoose.connection.readyState === 0) throw new HttpError(500, 'Express Auth - MongoDB Connection Not Ready');
       const authCookie = req.cookies[config.cookieAuthName];
       if (authCookie) throw new HttpError(500, 'Already logged in');
 
@@ -38,6 +52,7 @@ router.post(
       if (!u) throw new HttpError(401, 'Username or password not correct');
       const hashedPassword = createHash('sha512').update(`${u._id?.toString()}${u.salt}${password}`).digest('hex');
       if (u.password !== hashedPassword) throw new HttpError(401, 'Username or password not correct');
+      if (u.deleted) throw new HttpError(401, 'User not found');
 
       const userObj = u.toObject();
       delete userObj.password;
@@ -60,8 +75,9 @@ router.post(
         secure: process.env.NODE_ENV !== 'local',
       });
 
-      res.status(200).json(u);
+      res.status(200).json(userObj);
     } catch (e) {
+      if (config.debug) console.log('Express Auth /login Exception', e);
       next(e);
     }
   },
@@ -79,6 +95,7 @@ router.post(
   }),
   async (req, res, next) => {
     try {
+      if (mongoose.connection.readyState === 0) throw new HttpError(500, 'Express Auth - MongoDB Connection Not Ready');
       const {
         email,
         name,
@@ -94,8 +111,15 @@ router.post(
       newUser.salt = randomBytes(128).toString('hex');
       newUser.password = createHash('sha512').update(`${newUser._id.toString()}${newUser.salt}${password}`).digest('hex');
       newUser.save();
-      res.status(200).json(newUser);
+
+      const userObj = newUser.toObject();
+      delete userObj.password;
+      delete userObj.salt;
+      delete userObj.__v;
+
+      res.status(200).json(userObj);
     } catch (e) {
+      if (config.debug) console.log('Express Auth /create-user Exception', e);
       next(e);
     }
   },
@@ -110,6 +134,7 @@ router.get(
       if (!req.auth) throw new HttpError(401, 'No user found');
       res.status(200).json(req.auth);
     } catch (e) {
+      if (config.debug) console.log('Express Auth /status Exception', e);
       next(e);
     }
   },
@@ -128,6 +153,7 @@ router.get(
   }),
   async (req, res, next) => {
     try {
+      if (mongoose.connection.readyState === 0) throw new HttpError(500, 'Express Auth - MongoDB Connection Not Ready');
       if (!req.auth) throw new HttpError(401, 'No user found');
       const { sessionId, all } = req.query;
 
@@ -160,6 +186,7 @@ router.get(
 
       res.status(200).json({});
     } catch (e) {
+      if (config.debug) console.log('Express Auth /logout Exception', e);
       next(e);
     }
   },
@@ -168,7 +195,10 @@ router.get(
 router.use(errors());
 
 module.exports = {
+  AuthConnect: Connect,
   AuthRouter: router,
-  UserModel,
-  UserSessionModel,
+  AuthMiddleware: validateCookie,
+  CustomError: HttpError,
+  UserModel: User,
+  UserSessionModel: UserSession,
 };

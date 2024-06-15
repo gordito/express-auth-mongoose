@@ -26,7 +26,7 @@ const validateCookie = async (req, res, next) => {
 
     next();
   } catch (e) {
-    console.log('Validate Cookie Error', e);
+    if (config.debug) console.log('Validate Cookie Error', e);
     next(e);
   }
 };
