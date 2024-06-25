@@ -54,7 +54,7 @@ Thats about it, now you hopefully never need to write another user login/logout 
 
 ## Endpoints / Paths
 
-###  `POST create-user`
+###  `POST /create-user`
 
 Send body as a json with the following params:
 
