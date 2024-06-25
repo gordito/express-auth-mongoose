@@ -7,7 +7,15 @@ const UserSession = require('../model/usersession');
 
 const validateCookie = async (req, res, next) => {
   try {
-    const authCookie = req.cookies[config.cookieAuthName];
+    let authCookie;
+    authCookie = req.cookies[config.cookieAuthName];
+
+    if (!authCookie) {
+      if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        authCookie = req.headers.authorization.split(' ')[1];
+      }
+    }
+
     if (!authCookie) throw new HttpError(401, 'Unauthorized');
 
     if (!JWT.validateToken(authCookie)) {
@@ -16,8 +24,11 @@ const validateCookie = async (req, res, next) => {
     }
 
     req.auth = JWT.decodeToken(authCookie);
-
-    const session = await UserSession.findOne({ _id: new mongoose.Types.ObjectId(req.auth.session) });
+    if (!req.auth || !req.auth.session) {
+      res.clearCookie(config.cookieAuthName);
+      throw new HttpError(401, 'No User Session Found');
+    }
+    const session = await UserSession.findById(req.auth.session);
     if (!session || session.deleted) {
       res.clearCookie(config.cookieAuthName);
       throw new HttpError(401, 'No User Session Found');

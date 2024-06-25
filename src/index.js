@@ -13,15 +13,28 @@ const validateCookie = require('./middleware/validate.cookie');
 const { HttpError } = require('./middleware/custom.error');
 
 // Mongoose Models
-let User = null;
-let UserSession =  null;
+const User = require('./model/user');;
+const UserSession = require('./model/usersession');
 
-const Connect = async (connectionString) => {
+// Postroutes
+let PostLogin = null;
+let PostLogout = null;
+let PostCreateUser = null;
+
+const onLogin = (fn) => {
+  if (fn && typeof fn === 'function')  PostLogin = fn;
+};
+const onLogout = (fn) => {
+  if (fn && typeof fn === 'function')  PostLogout = fn;
+};
+const onCreateUser = (fn) => {
+  if (fn && typeof fn === 'function')  PostCreateUser = fn;
+};
+
+const Connect = async () => {
   try {
     await mongoose.connect(config.mongodb);
     if (config.debug) console.log('Express Auth - MongoDB Connected');
-    User = require('./model/user');;
-    UserSession = require('./model/usersession');
   } catch (e) {
     if (config.debug) console.log('Express Auth - MongoDB Connection Error', e);
   }
@@ -69,6 +82,8 @@ router.post(
       session.jwt = jwt;
       session.save();
 
+      userObj.jwt = jwt;
+
       res.cookie(config.cookieAuthName, jwt, {
         maxAge: 30 * 24 * 60 * 60 * 1000,
         httpOnly: true,
@@ -76,6 +91,7 @@ router.post(
       });
 
       res.status(200).json(userObj);
+      if (PostLogin && typeof PostLogin === 'function') PostLogin(req, userObj);
     } catch (e) {
       if (config.debug) console.log('Express Auth /login Exception', e);
       next(e);
@@ -89,7 +105,7 @@ router.post(
   celebrate({
     body: {
       email: Joi.string().email().required(),
-      name: Joi.string().required(),
+      name: Joi.string().max(64).required(),
       password: Joi.string().min(8).required(),
     },
   }),
@@ -102,12 +118,12 @@ router.post(
         password,
       } = req.body;
       const user = await User.findOne({ email });
-      if (user) throw new HttpError(500, 'User already exists');
+      if (user) throw new HttpError(409, 'User already exists');
       const newUser = await new User({
         email,
         name,
       }).save();
-      if (!newUser) throw new HttpError(500, 'Could not create user');
+      if (!newUser) throw new HttpError(503, 'Could not create user');
       newUser.salt = randomBytes(128).toString('hex');
       newUser.password = createHash('sha512').update(`${newUser._id.toString()}${newUser.salt}${password}`).digest('hex');
       newUser.save();
@@ -118,6 +134,7 @@ router.post(
       delete userObj.__v;
 
       res.status(200).json(userObj);
+      if (PostCreateUser && typeof PostCreateUser === 'function') PostCreateUser(req, userObj);
     } catch (e) {
       if (config.debug) console.log('Express Auth /create-user Exception', e);
       next(e);
@@ -185,6 +202,7 @@ router.get(
       res.clearCookie(config.cookieAuthName);
 
       res.status(200).json({});
+      if (PostLogout && typeof PostLogout === 'function') PostLogout(req, req.auth);
     } catch (e) {
       if (config.debug) console.log('Express Auth /logout Exception', e);
       next(e);
@@ -201,4 +219,11 @@ module.exports = {
   CustomError: HttpError,
   UserModel: User,
   UserSessionModel: UserSession,
+
+  SetPostLogin: onLogin, // Deprecated
+  onLogin: onLogin,
+  SetPostLogout: onLogout, // Deprecated
+  onLogout: onLogout,
+  SetPostCreateUser: onCreateUser, // Deprecated
+  onCreateUser: onCreateUser,
 };
