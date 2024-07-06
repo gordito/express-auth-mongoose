@@ -50,7 +50,7 @@ router.post(
   express.json(),
   celebrate({
     body: {
-      email: Joi.string().email().required(),
+      username: Joi.string().required(),
       password: Joi.string().required(),
     },
   }),
@@ -60,10 +60,10 @@ router.post(
       const authCookie = req.cookies[config.cookieAuthName];
       if (authCookie) throw new HttpError(500, 'Already logged in');
 
-      const { email, password } = req.body;
-      const u = await User.findOne({ email });
+      const { username, password } = req.body;
+      const u = await User.findOne({ username });
       if (!u) throw new HttpError(401, 'Username or password not correct');
-      const hashedPassword = createHash('sha512').update(`${u._id?.toString()}${u.salt}${password}`).digest('hex');
+      const hashedPassword = createHash('sha512').update(`${u._id.toString()}${u.salt}${password}`).digest('hex');
       if (u.password !== hashedPassword) throw new HttpError(401, 'Username or password not correct');
       if (u.deleted) throw new HttpError(401, 'User not found');
 
@@ -73,7 +73,7 @@ router.post(
       delete userObj.__v;
 
       const session = await new UserSession({
-        user: userObj._id,
+        userid: u._id,
       }).save();
       const jwt = JWT.encodeToken({
         ...userObj,
@@ -104,24 +104,24 @@ router.post(
   express.json(),
   celebrate({
     body: {
-      email: Joi.string().email().required(),
-      name: Joi.string().max(64).required(),
+      username: Joi.string().required(),
       password: Joi.string().min(8).required(),
+      usertype: Joi.string().default('email'),
     },
   }),
   async (req, res, next) => {
     try {
       if (mongoose.connection.readyState === 0) throw new HttpError(500, 'Express Auth - MongoDB Connection Not Ready');
       const {
-        email,
-        name,
+        username,
         password,
+        usertype,
       } = req.body;
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ username, usertype });
       if (user) throw new HttpError(409, 'User already exists');
       const newUser = await new User({
-        email,
-        name,
+        username,
+        usertype,
       }).save();
       if (!newUser) throw new HttpError(503, 'Could not create user');
       newUser.salt = randomBytes(128).toString('hex');
@@ -175,24 +175,21 @@ router.get(
       const { sessionId, all } = req.query;
 
       if (all) {
-        const sessions = await UserSession.find({ user: new mongoose.Types.ObjectId(req.auth._id) });
+        const sessions = await UserSession.find({ userid: new mongoose.Types.ObjectId(req.auth._id), deleted: null });
         for (const s of sessions) {
           s.deleted = Date.now();
           s.save();
         }
-        // await UserSession.deleteMany({ user: new mongoose.Types.ObjectId(req.auth._id) });
-        // res.clearCookie(config.cookieAuthName);
-        // return res.status(200).json({});
       }
 
       if (sessionId) {
-        const session = await UserSession.findOne({ _id: new mongoose.Types.ObjectId(sessionId), user: new mongoose.Types.ObjectId(req.auth._id) });
+        const session = await UserSession.findOne({ _id: new mongoose.Types.ObjectId(sessionId), userid: new mongoose.Types.ObjectId(req.auth._id), deleted: null });
         if (!session) throw new HttpError(404, 'Provided sessionId Not Found');
         // await session.deleteOne();
         session.deleted = Date.now();
         session.save();
       } else {
-        const session = await UserSession.findOne({ _id: new mongoose.Types.ObjectId(req.auth.session) });
+        const session = await UserSession.findOne({ _id: new mongoose.Types.ObjectId(req.auth.session), deleted: null });
         if (!session) throw new HttpError(401, 'No User Session Found');
         // await session.deleteOne();
         session.deleted = Date.now();
@@ -220,10 +217,7 @@ module.exports = {
   UserModel: User,
   UserSessionModel: UserSession,
 
-  SetPostLogin: onLogin, // Deprecated
   onLogin: onLogin,
-  SetPostLogout: onLogout, // Deprecated
   onLogout: onLogout,
-  SetPostCreateUser: onCreateUser, // Deprecated
   onCreateUser: onCreateUser,
 };

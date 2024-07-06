@@ -59,9 +59,9 @@ Thats about it, now you hopefully never need to write another user login/logout 
 Send body as a json with the following params:
 
 ```
-email: Joi.string().email().required(),
-name: Joi.string().required(),
+username: Joi.string().required(),
 password: Joi.string().min(8).required(),
+usertype: Joi.string().default('email'),
 ```
 
 ### `POST /login`
@@ -69,7 +69,7 @@ password: Joi.string().min(8).required(),
 Send body as a json with the following params:
 
 ```
-email: Joi.string().email().required(),
+username: Joi.string().required(),
 password: Joi.string().required(),
 ```
 
