@@ -20,6 +20,7 @@ const UserSession = require('./model/usersession');
 let PostLogin = null;
 let PostLogout = null;
 let PostCreateUser = null;
+let PostUserStatus = null;
 
 const onLogin = (fn) => {
   if (fn && typeof fn === 'function')  PostLogin = fn;
@@ -29,6 +30,9 @@ const onLogout = (fn) => {
 };
 const onCreateUser = (fn) => {
   if (fn && typeof fn === 'function')  PostCreateUser = fn;
+};
+const onUserStatus = (fn) => {
+  if (fn && typeof fn === 'function')  PostUserStatus = fn;
 };
 
 const Connect = async () => {
@@ -150,6 +154,7 @@ router.get(
     try {
       if (!req.auth) throw new HttpError(401, 'No user found');
       res.status(200).json(req.auth);
+      if (PostUserStatus && typeof PostUserStatus === 'function') PostUserStatus(req, req.auth);
     } catch (e) {
       if (config.debug) console.log('Express Auth /status Exception', e);
       next(e);
@@ -220,4 +225,5 @@ module.exports = {
   onLogin: onLogin,
   onLogout: onLogout,
   onCreateUser: onCreateUser,
+  onUserStatus: onUserStatus,
 };

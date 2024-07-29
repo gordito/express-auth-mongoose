@@ -113,6 +113,60 @@ The Mongoose model for the User, for querying the user DB.
 
 The Mongoose model for the UserSession, for querying the user session DB.
 
+**onLogin**
+
+Post Login function, set this to a function to catch successfull login requests.
+
+`onLogin(req, authUser)`
+- req: the user login request
+- authUser: the authenticated user object
+
+Example:
+
+```
+const express = require('express');
+const { AuthRouter, onLogin } = require('express-auth-mongoose');
+const app = express();
+
+// Adds all the paths to your backend
+app.use('/auth', AuthRouter);
+
+// Callback after login success
+onLogin((req, userAuth) => {
+  console.log('User Login Success', userAuth);
+});
+
+const port = 8080;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);;
+});
+```
+
+**onLogout**
+
+Post Logout function, set this to a function to catch successfull logout requests.
+
+`onLogout(req, authUser)`
+- req: the user logout request
+- authUser: the authenticated user object
+
+**onCreateUser**
+
+Post Create User function, set this to a function to catch successfull create user requests.
+
+`onCreateUser(req, newUser)`
+- req: the user logout request
+- authUser: the new user object
+
+**onUserStatus**
+
+Post User Status function, set this to a function to catch successfull user status requests.
+
+`onUserStatus(req, authUser)`
+- req: the user status request
+- authUser: the authenticated user object
+
+
 ## .env vars
 
 If you intend to run this in production, you might want to change the .env varaiables.
