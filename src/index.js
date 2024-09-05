@@ -88,11 +88,23 @@ router.post(
 
       userObj.jwt = jwt;
 
-      res.cookie(config.cookieAuthName, jwt, {
+      const cookieOptions = {
         maxAge: 30 * 24 * 60 * 60 * 1000,
         httpOnly: true,
-        secure: process.env.NODE_ENV !== 'local',
-      });
+      };
+      if (process.env.COOKIE_SECURE !== 'false') {
+        cookieOptions.secure = true
+      }
+      if (process.env.COOKIE_SAMESITE === 'None') {
+        cookieOptions.sameSite = 'None';
+      }
+      if (process.env.COOKIE_SAMESITE === 'Lax') {
+        cookieOptions.sameSite = 'Lax';
+      }
+      if (process.env.COOKIE_SAMESITE === 'Strict') {
+        cookieOptions.sameSite = 'Strict';
+      }
+      res.cookie(config.cookieAuthName, jwt, cookieOptions);
 
       res.status(200).json(userObj);
       if (PostLogin && typeof PostLogin === 'function') PostLogin(req, userObj);
