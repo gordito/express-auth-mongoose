@@ -34,6 +34,12 @@ const onCreateUser = (fn) => {
 const onUserStatus = (fn) => {
   if (fn && typeof fn === 'function')  PostUserStatus = fn;
 };
+const onForgotPassword = (fn) => {
+  if (fn && typeof fn === 'function')  PostForgotPassword = fn;
+};
+const onRestorePassword = (fn) => {
+  if (fn && typeof fn === 'function')  PostRestorePassword = fn;
+};
 
 const Connect = async () => {
   try {
@@ -224,6 +230,86 @@ router.get(
   },
 );
 
+
+router.post(
+  '/forgot-password',
+  express.json(),
+  celebrate({
+    body: {
+      username: Joi.string().required(),
+    },
+  }),
+  async (req, res, next) => {
+    try {
+      if (mongoose.connection.readyState === 0) throw new HttpError(500, 'Express Auth - MongoDB Connection Not Ready');
+      const {
+        username,
+      } = req.body;
+      const user = await User.findOne({ username });
+      if (!user) {
+        res.status(200).json({});
+      }
+
+      user.token = randomBytes(128).toString('hex');
+      user.tokenCreated = Date.now();
+      user.save();
+
+      const userObj = user.toObject();
+      delete userObj.password;
+      delete userObj.salt;
+      delete userObj.__v;
+
+      res.status(200).json({});
+      if (PostForgotPassword && typeof PostForgotPassword === 'function') PostForgotPassword(req, userObj);
+    } catch (e) {
+      if (config.debug) console.log('Express Auth /forgot-password Exception', e);
+      next(e);
+    }
+  },
+);
+
+
+router.post(
+  '/restore-password',
+  express.json(),
+  celebrate({
+    body: {
+      username: Joi.string().required(),
+      token: Joi.string().required(),
+      newpassword: Joi.string().min(8).required(),
+    },
+  }),
+  async (req, res, next) => {
+    try {
+      if (mongoose.connection.readyState === 0) throw new HttpError(500, 'Express Auth - MongoDB Connection Not Ready');
+      const {
+        username,
+        token,
+        newpassword,
+      } = req.body;
+      const user = await User.findOne({ username, token });
+      if (!user) throw new HttpError(401, 'Could not restore password');
+      if (user.tokenCreated < Date.now() - 24 * 60 * 60 * 1000) throw new HttpError(401, 'Token expired');
+      user.salt = randomBytes(128).toString('hex');
+      user.password = createHash('sha512').update(`${user._id.toString()}${user.salt}${newpassword}`).digest('hex');
+      user.token = null;
+      user.tokenCreated = null;
+      user.save();
+
+      const userObj = user.toObject();
+      delete userObj.password;
+      delete userObj.salt;
+      delete userObj.__v;
+
+      res.status(200).json(userObj);
+      if (PostRestorePassword && typeof PostRestorePassword === 'function') PostRestorePassword(req, userObj);
+    } catch (e) {
+      if (config.debug) console.log('Express Auth /create-user Exception', e);
+      next(e);
+    }
+  },
+);
+
 router.use(errors());
 
 module.exports = {
@@ -234,8 +320,10 @@ module.exports = {
   UserModel: User,
   UserSessionModel: UserSession,
 
-  onLogin: onLogin,
-  onLogout: onLogout,
-  onCreateUser: onCreateUser,
-  onUserStatus: onUserStatus,
+  onLogin,
+  onLogout,
+  onCreateUser,
+  onUserStatus,
+  onForgotPassword,
+  onRestorePassword,
 };
