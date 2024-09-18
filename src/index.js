@@ -21,6 +21,8 @@ let PostLogin = null;
 let PostLogout = null;
 let PostCreateUser = null;
 let PostUserStatus = null;
+let PostForgotPassword = null;
+let PostRestorePassword = null;
 
 const onLogin = (fn) => {
   if (fn && typeof fn === 'function')  PostLogin = fn;
@@ -247,7 +249,7 @@ router.post(
       } = req.body;
       const user = await User.findOne({ username });
       if (!user) {
-        res.status(200).json({});
+        return res.status(200).json({});
       }
 
       user.token = randomBytes(128).toString('hex');
