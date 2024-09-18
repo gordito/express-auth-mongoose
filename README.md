@@ -88,6 +88,27 @@ sessionId: Joi.string(),
 all: Joi.boolean(),
 ```
 
+### `POST /forgot-password`
+
+Returns 200 regardless if the user is found or not. Function `onForgotPassword` contains token to email user.
+
+Takes a json body as a json with the following params:
+
+```
+username: Joi.string().required(),
+```
+
+### `POST /restore-password`
+
+Takes a json body as a json with the following params:
+
+```
+username: Joi.string().required(),
+token: Joi.string().required(),
+newpassword: Joi.string().min(8).required(),
+```
+
+
 ## Module Exports
 
 **AuthRouter**
@@ -165,6 +186,27 @@ Post User Status function, set this to a function to catch successfull user stat
 `onUserStatus(req, authUser)`
 - req: the user status request
 - authUser: the authenticated user object
+
+**onForgotPassword**
+
+Post Forgot Password function, set this to a function to catch successfull retore token requests.
+
+The token can be emailed to user to use as a 24h temporary restore token.
+
+`onForgotPassword(req, userObj)`
+- req: the forgot password request
+- authUser: the user object including new token
+
+
+**onRestorePassword**
+
+Post Restore Password function, set this to a function to catch successfull retore password requests.
+
+Not necessary to implement, but maybe you want to email user and inform that the password was updated after a successfull restore.
+
+`onRestorePassword(req, userObj)`
+- req: the restore password request
+- authUser: the user object
 
 
 ## .env vars
