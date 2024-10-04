@@ -23,6 +23,7 @@ let PostCreateUser = null;
 let PostUserStatus = null;
 let PostForgotPassword = null;
 let PostRestorePassword = null;
+let PostError = null;
 
 const onLogin = (fn) => {
   if (fn && typeof fn === 'function')  PostLogin = fn;
@@ -42,6 +43,9 @@ const onForgotPassword = (fn) => {
 const onRestorePassword = (fn) => {
   if (fn && typeof fn === 'function')  PostRestorePassword = fn;
 };
+const onError = (fn) => {
+  if (fn && typeof fn === 'function')  PostError = fn;
+};
 
 const Connect = async () => {
   try {
@@ -49,6 +53,7 @@ const Connect = async () => {
     if (config.debug) console.log('Express Auth - MongoDB Connected');
   } catch (e) {
     if (config.debug) console.log('Express Auth - MongoDB Connection Error', e);
+    throw new Error('Express Auth - MongoDB Connection Error');
   }
 };
 Connect();
@@ -118,6 +123,7 @@ router.post(
       if (PostLogin && typeof PostLogin === 'function') PostLogin(req, userObj);
     } catch (e) {
       if (config.debug) console.log('Express Auth /login Exception', e);
+      if (PostError && typeof PostError === 'function') PostError(req, e);
       next(e);
     }
   },
@@ -161,6 +167,7 @@ router.post(
       if (PostCreateUser && typeof PostCreateUser === 'function') PostCreateUser(req, userObj);
     } catch (e) {
       if (config.debug) console.log('Express Auth /create-user Exception', e);
+      if (PostError && typeof PostError === 'function') PostError(req, e);
       next(e);
     }
   },
@@ -177,6 +184,7 @@ router.get(
       if (PostUserStatus && typeof PostUserStatus === 'function') PostUserStatus(req, req.auth);
     } catch (e) {
       if (config.debug) console.log('Express Auth /status Exception', e);
+      if (PostError && typeof PostError === 'function') PostError(req, e);
       next(e);
     }
   },
@@ -227,6 +235,7 @@ router.get(
       if (PostLogout && typeof PostLogout === 'function') PostLogout(req, req.auth);
     } catch (e) {
       if (config.debug) console.log('Express Auth /logout Exception', e);
+      if (PostError && typeof PostError === 'function') PostError(req, e);
       next(e);
     }
   },
@@ -265,6 +274,7 @@ router.post(
       if (PostForgotPassword && typeof PostForgotPassword === 'function') PostForgotPassword(req, userObj);
     } catch (e) {
       if (config.debug) console.log('Express Auth /forgot-password Exception', e);
+      if (PostError && typeof PostError === 'function') PostError(req, e);
       next(e);
     }
   },
@@ -307,6 +317,7 @@ router.post(
       if (PostRestorePassword && typeof PostRestorePassword === 'function') PostRestorePassword(req, userObj);
     } catch (e) {
       if (config.debug) console.log('Express Auth /create-user Exception', e);
+      if (PostError && typeof PostError === 'function') PostError(req, e);
       next(e);
     }
   },
@@ -328,4 +339,5 @@ module.exports = {
   onUserStatus,
   onForgotPassword,
   onRestorePassword,
+  onError,
 };

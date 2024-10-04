@@ -146,7 +146,7 @@ Example:
 
 ```
 const express = require('express');
-const { AuthRouter, onLogin } = require('express-auth-mongoose');
+const { AuthRouter, onLogin, onError } = require('express-auth-mongoose');
 const app = express();
 
 // Adds all the paths to your backend
@@ -155,6 +155,12 @@ app.use('/auth', AuthRouter);
 // Callback after login success
 onLogin((req, userAuth) => {
   console.log('User Login Success', userAuth);
+});
+
+onError((req, error) => {
+  if (req.path === '/login') {
+    console.log('User Login Failed', error);
+  }
 });
 
 const port = 8080;
@@ -207,6 +213,16 @@ Not necessary to implement, but maybe you want to email user and inform that the
 `onRestorePassword(req, userObj)`
 - req: the restore password request
 - authUser: the user object
+
+**onError**
+
+Post exception catch Error function, set this to a function to read exceptions from all requests in one function.
+
+Separate responses with req.path and req.method to know what went wrong.
+
+`onError(req, error)`
+- req: the request from any command in the plugin that throws an error
+- error: the http error or any other error from the request
 
 
 ## .env vars
