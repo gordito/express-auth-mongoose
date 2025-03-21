@@ -66,6 +66,9 @@ router.post(
   '/login',
   express.json(),
   celebrate({
+    query: {
+      jwtonly: Joi.boolean().default(false),
+    },
     body: {
       username: Joi.string().required(),
       password: Joi.string().required(),
@@ -78,6 +81,7 @@ router.post(
       if (authCookie) throw new HttpError(500, 'Already logged in');
 
       const { username, password } = req.body;
+      const { jwtonly } = req.query;
       const u = await User.findOne({ username });
       if (!u) throw new HttpError(401, 'Username or password not correct');
       const hashedPassword = createHash('sha512').update(`${u._id.toString()}${u.salt}${password}`).digest('hex');
@@ -119,7 +123,11 @@ router.post(
       }
       res.cookie(config.cookieAuthName, jwt, cookieOptions);
 
-      res.status(200).json(userObj);
+      if (jwtonly) {
+        res.status(200).send(jwt);
+      } else {
+        res.status(200).json(userObj);
+      }
       if (PostLogin && typeof PostLogin === 'function') PostLogin(req, userObj);
     } catch (e) {
       if (config.debug) console.log('Express Auth /login Exception', e);
